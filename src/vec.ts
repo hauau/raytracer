@@ -1,11 +1,11 @@
-class vec3 {
-  e0;
-  e1;
-  e2;
+export class vec3 {
+  e0: number;
+  e1: number;
+  e2: number;
 
-  e3;
+  e3?: number;
 
-  constructor(e0, e1, e2) {
+  constructor(e0: number, e1: number, e2: number) {
     this.e0 = e0;
     this.e1 = e1;
     this.e2 = e2;
@@ -40,9 +40,9 @@ class vec3 {
   }
 
   get squaredLength() {
-      this.e0 * this.e0 +
-      this.e1 * this.e1 +
-      this.e2 * this.e2
+      return this.e0 * this.e0 +
+        this.e1 * this.e1 +
+        this.e2 * this.e2;
   }   
 
   makeUnitVector() {
@@ -54,11 +54,11 @@ class vec3 {
 
 }
 
-function unitVector(vec) {
+function unitVector(vec: vec3) {
   return scaleDiv(vec, vec.length)
 }
 
-function scaleDiv(veca, factor) {
+function scaleDiv(veca: vec3, factor: number) {
   return new vec3(
     veca.x / factor,
     veca.y / factor,
@@ -66,7 +66,7 @@ function scaleDiv(veca, factor) {
    )
 }
 
-function scaleMul(veca, factor) {
+function scaleMul(veca: vec3, factor: number) {
   return new vec3(
     veca.x * factor,
     veca.y * factor,
@@ -74,7 +74,7 @@ function scaleMul(veca, factor) {
    )
 }
 
-function mul(veca, vecb) {
+function mul(veca: vec3, vecb: vec3) {
   return new vec3(
     veca.x * vecb.x,
     veca.y * vecb.y,
@@ -82,7 +82,7 @@ function mul(veca, vecb) {
    )
 }
 
-function div(veca, vecb) {
+function div(veca: vec3, vecb: vec3) {
   return new vec3(
     veca.x / vecb.x,
     veca.y / vecb.y,
@@ -90,7 +90,7 @@ function div(veca, vecb) {
    )
 }
 
-function add(veca, vecb) {
+function add(veca: vec3, vecb: vec3) {
   return new vec3(
          veca.x + vecb.x,
          veca.y + vecb.y,
@@ -98,7 +98,7 @@ function add(veca, vecb) {
         )
 }
 
-function sub(veca, vecb) {
+function sub(veca: vec3, vecb: vec3) {
   return new vec3(
          veca.x - vecb.x,
          veca.y - vecb.y,
@@ -106,13 +106,13 @@ function sub(veca, vecb) {
         )
 }
 
-function dot(veca, vecb) {
+function dot(veca: vec3, vecb: vec3) {
   return veca.x * vecb.x + 
          veca.y * vecb.y + 
          veca.z * vecb.z 
 }
 
-function cross(veca, vecb) {
+function cross(veca: vec3, vecb: vec3) {
   const x = veca.y * vecb.z - veca.z * vecb.y;
   const y = veca.z * vecb.x - veca.x * vecb.z;
   const z = veca.x * vecb.y - veca.y * vecb.x;
@@ -120,7 +120,7 @@ function cross(veca, vecb) {
   return new vec3(x, y, z);
 }
 
-module.exports = {
+export default {
   vec3,
   dot,
   cross,
@@ -129,5 +129,6 @@ module.exports = {
   div,
   scaleDiv,
   scaleMul,
-  unitVector
+  unitVector,
+  mul
 }
