@@ -3,37 +3,43 @@ import { promisify } from 'util';
 const exec = promisify(require('child_process').exec);
 import Vec, { vec3 } from './vec'
 import { ray } from './ray';
+import { Hitable, HitRecord } from './hitable';
+import { HitableList } from './hitable-list';
+import { Sphere } from './sphere';
+import { Camera } from './camera';
 
-function hitSphere(vecCenter: vec3, radius: number, vray: ray) {
-  const originCenterVec = Vec.sub(vray.origin, vecCenter);
+function randomInUnitSphere(): vec3 {
+  let contactPoint: vec3;
 
-  const a = Vec.dot(vray.direction, vray.direction);
-  const b = 2.0 * Vec.dot(originCenterVec, vray.direction);
-  const c = Vec.dot(originCenterVec, originCenterVec) - radius * radius;
-  const discriminant = b*b - 4*a*c;
+  do {
+    contactPoint = Vec.scaleMul(
+      Vec.sub(
+        new vec3(Math.random(), Math.random(), Math.random()),
+        new vec3(1,1,1)
+      ),
+      2.0
+    )
+  } while (contactPoint.squaredLength >= 1)
 
-  if (discriminant < 0) {
-    return -1.0;
-  } else {
-    return (-b - Math.sqrt(discriminant)) / (2.0 * a)
-  }
+  return contactPoint;
 }
 
-function color(someray: ray) {
-  const sphere = new Vec.vec3(0,0,-1);
-  const sphereRadius = 0.5;
-  const sphereHitpointT = hitSphere(sphere, sphereRadius, someray);
+function color(someray: ray, world: Hitable) {
+  const rec = {} as HitRecord;
 
-  if (sphereHitpointT > 0) {
-    const Normal = Vec.unitVector(
-      Vec.sub(
-        someray.pointAtParameter(sphereHitpointT),
-        new Vec.vec3(0, 0, -1)
+  if (world.hit(someray, 0.0, Number.MAX_VALUE, rec)) {
+    const target = Vec.add(
+      rec.p,
+      Vec.add(
+        rec.normal,
+        randomInUnitSphere()
       )
-    );
-
-
-    return Vec.scaleMul(new Vec.vec3(Normal.x + 1, Normal.y + 1, Normal.z + 1), 0.5)
+    )
+    
+    return Vec.scaleMul(
+      new Vec.vec3(rec.normal.x + 1, rec.normal.y + 1, rec.normal.z + 1),
+      0.5
+    )
   }
 
   const unitDirection = Vec.unitVector(someray.direction);
@@ -48,11 +54,24 @@ function color(someray: ray) {
 async function main() {
   const nx = 200;
   const ny = 100;
+  const ns = 100;
 
   const lowerLeftCorner = new Vec.vec3(-2.0, -1.0, -1.0)
   const horizontal =      new Vec.vec3(4, 0, 0)
   const vertical =        new Vec.vec3(0, 2, 0);
   const origin =          new Vec.vec3(0, 0, 0);
+
+  const world = new HitableList(
+    new Sphere(new Vec.vec3(0, 0,      -1), 0.5),
+    new Sphere(new Vec.vec3(0.6, -0.3, -1), 0.6),
+  )
+
+  const camera = new Camera(
+    lowerLeftCorner,
+    horizontal,
+    vertical,
+    origin,
+  );
 
   try {
     await rm('/tmp/out.ppm')
@@ -63,21 +82,22 @@ async function main() {
 
   for (let j = ny - 1; j >= 0; j--) {
     for (let i = 0; i < nx; i++) {
-      const u = i / nx;
-      const v = j / ny;
+      let col = new vec3(0, 0, 0);
 
-      const r = new ray(
-        origin,
-        Vec.add(
-          lowerLeftCorner,
-          Vec.add(
-            Vec.scaleMul(horizontal, u),
-            Vec.scaleMul(vertical,   v)
+      for (let s = 0; s < ns; s++) {
+        const u = (i + Math.random()) / nx;
+        const v = (j + Math.random()) / ny;
+
+        const r = camera.getRay(u, v);
+        const p = r.pointAtParameter(2.0);
+
+        col = Vec.add(
+            col, 
+            color(r, world)
           )
-        )
-      )
+      }
 
-      const col = color(r);
+      col = Vec.scaleDiv(col, ns)
 
       const ir = Math.floor(255.99 * col.r);
       const ig = Math.floor(255.99 * col.g);
