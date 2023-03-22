@@ -27,7 +27,7 @@ function randomInUnitSphere(): vec3 {
 function color(someray: ray, world: HitableList, callDepth = 0): vec3 {
   const rec = {} as HitRecord;
 
-  if (world.hit(someray, 0.0, Number.MAX_VALUE, rec)) {
+  if (world.hit(someray, 0.001, Number.MAX_VALUE, rec)) {
     const target = Vec.add(
       rec.p,
       Vec.add(
@@ -36,9 +36,9 @@ function color(someray: ray, world: HitableList, callDepth = 0): vec3 {
       )
     )
       
+    // Limiting 
     callDepth++;
-
-    if (callDepth > 20) {
+    if (callDepth > 30) {
       const unitDirection = Vec.unitVector(someray.direction);
       const t = 0.5 * (unitDirection.y + 1.0);
     
@@ -118,6 +118,13 @@ async function main() {
 
       col = Vec.scaleDiv(col, ns)
 
+      // gamma 2
+      col = new vec3(
+        Math.sqrt(col.r),
+        Math.sqrt(col.g),
+        Math.sqrt(col.b)
+      )
+
       const ir = Math.floor(255.99 * col.r);
       const ig = Math.floor(255.99 * col.g);
       const ib = Math.floor(255.99 * col.b);
@@ -127,7 +134,7 @@ async function main() {
   }
 
   await exec('mogrify -format png /tmp/out.ppm')
-  await copyFile('/tmp/out.png', `./renders/out_${+new Date()}`)
+  await copyFile('/tmp/out.png', `./renders/out_${+new Date()}.png`)
   await exec('feh --zoom 400 /tmp/out.png') 
 }
 
