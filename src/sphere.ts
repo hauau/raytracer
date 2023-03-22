@@ -16,11 +16,11 @@ export class Sphere implements Hitable {
 
     const a = Vec.dot(ray.direction, ray.direction);
     const b = Vec.dot(originCenterVec, ray.direction);
-    const c = Vec.dot(originCenterVec, originCenterVec) - this.radius * this.radius;
-    const discriminant = b*b - a*c;
+    const c = Vec.dot(originCenterVec, originCenterVec) - this.radius ** 2;
+    const discriminant = b**2 - a*c;
   
     if (discriminant > 0) {
-      let temp = (-b - Math.sqrt(discriminant)) / (a);
+      let temp = (-b - Math.sqrt(discriminant)) / a;
 
       if (temp < t_max && temp > t_min) {
         hitRecord.t = temp;
@@ -33,7 +33,7 @@ export class Sphere implements Hitable {
         return true;
       }
 
-      temp = (-b + Math.sqrt(discriminant)) / (a);
+      temp = (-b + Math.sqrt(discriminant)) / a;
 
       if (temp < t_max && temp > t_min) {
         hitRecord.t = temp;

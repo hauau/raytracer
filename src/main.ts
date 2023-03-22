@@ -1,4 +1,4 @@
-import { writeFile, appendFile, rm } from 'fs/promises';
+import { writeFile, appendFile, rm, copyFile } from 'fs/promises';
 import { promisify } from 'util';
 const exec = promisify(require('child_process').exec);
 import Vec, { vec3 } from './vec'
@@ -24,7 +24,7 @@ function randomInUnitSphere(): vec3 {
   return contactPoint;
 }
 
-function color(someray: ray, world: Hitable) {
+function color(someray: ray, world: HitableList, callDepth = 0): vec3 {
   const rec = {} as HitRecord;
 
   if (world.hit(someray, 0.0, Number.MAX_VALUE, rec)) {
@@ -35,9 +35,28 @@ function color(someray: ray, world: Hitable) {
         randomInUnitSphere()
       )
     )
+      
+    callDepth++;
+
+    if (callDepth > 20) {
+      const unitDirection = Vec.unitVector(someray.direction);
+      const t = 0.5 * (unitDirection.y + 1.0);
     
+      return Vec.add( 
+        Vec.scaleMul(new Vec.vec3(1,1,1)    , 1.0 - t),
+        Vec.scaleMul(new Vec.vec3(0.5,0.7,1), t)
+      )
+    }
+
     return Vec.scaleMul(
-      new Vec.vec3(rec.normal.x + 1, rec.normal.y + 1, rec.normal.z + 1),
+      color(
+        new ray(
+          rec.p,
+          Vec.sub(
+            target,
+            rec.p)
+        ),
+        world, callDepth),
       0.5
     )
   }
@@ -63,7 +82,7 @@ async function main() {
 
   const world = new HitableList(
     new Sphere(new Vec.vec3(0, 0,      -1), 0.5),
-    new Sphere(new Vec.vec3(0.6, -0.3, -1), 0.6),
+    new Sphere(new Vec.vec3(0, -100.5, -1), 100),
   )
 
   const camera = new Camera(
@@ -108,6 +127,7 @@ async function main() {
   }
 
   await exec('mogrify -format png /tmp/out.ppm')
+  await copyFile('/tmp/out.png', `./renders/out_${+new Date()}`)
   await exec('feh --zoom 400 /tmp/out.png') 
 }
 

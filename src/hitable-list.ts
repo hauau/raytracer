@@ -14,7 +14,7 @@ export class HitableList extends Array<Hitable> implements Hitable {
     let closestSoFar = t_max;
 
     for (const hitable of this) {
-      if (hitable.hit(ray, t_min, t_max, tempHitRecord)) {
+      if (hitable.hit(ray, t_min, closestSoFar, tempHitRecord)) {
         anyHits = true;
         closestSoFar = tempHitRecord.t 
         Object.assign(hitRecord, tempHitRecord);
