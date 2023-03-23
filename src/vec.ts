@@ -40,9 +40,7 @@ export class vec3 {
   }
 
   get squaredLength() {
-      return this.e0 * this.e0 +
-        this.e1 * this.e1 +
-        this.e2 * this.e2;
+      return this.e0 **2 + this.e1 **2 + this.e2 **2;
   }   
 
   makeUnitVector() {
@@ -120,8 +118,26 @@ function cross(veca: vec3, vecb: vec3) {
   return new vec3(x, y, z);
 }
 
+function reflect(incomingRay: vec3, n: vec3): vec3 {
+  // in - 2 * dot(in, n) * n;
+  return sub(
+      incomingRay,
+      scaleMul(
+        scaleMul(
+          n,
+          dot(
+            incomingRay,
+            n
+          )
+        ),
+        2
+      )
+    );
+} 
+
 export default {
   vec3,
+  reflect,
   dot,
   cross,
   add,

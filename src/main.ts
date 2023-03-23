@@ -5,60 +5,33 @@ import Vec, { vec3 } from './vec'
 import { ray } from './ray';
 import { Hitable, HitRecord } from './hitable';
 import { HitableList } from './hitable-list';
-import { Sphere } from './sphere';
+import { randomInUnitSphere, Sphere } from './sphere';
 import { Camera } from './camera';
+import { Lambertian, Metal } from './material';
 
-function randomInUnitSphere(): vec3 {
-  let contactPoint: vec3;
-
-  do {
-    contactPoint = Vec.scaleMul(
-      Vec.sub(
-        new vec3(Math.random(), Math.random(), Math.random()),
-        new vec3(1,1,1)
-      ),
-      2.0
-    )
-  } while (contactPoint.squaredLength >= 1)
-
-  return contactPoint;
-}
-
-function color(someray: ray, world: HitableList, callDepth = 0): vec3 {
+function color(someray: ray, world: HitableList, depth: number): vec3 {
   const rec = {} as HitRecord;
 
   if (world.hit(someray, 0.001, Number.MAX_VALUE, rec)) {
-    const target = Vec.add(
-      rec.p,
-      Vec.add(
-        rec.normal,
-        randomInUnitSphere()
-      )
-    )
-      
-    // Limiting 
-    callDepth++;
-    if (callDepth > 30) {
-      const unitDirection = Vec.unitVector(someray.direction);
-      const t = 0.5 * (unitDirection.y + 1.0);
-    
-      return Vec.add( 
-        Vec.scaleMul(new Vec.vec3(1,1,1)    , 1.0 - t),
-        Vec.scaleMul(new Vec.vec3(0.5,0.7,1), t)
-      )
+    const scatterRes = {
+      scatteredRay: new ray(new vec3(0,0,0), new vec3(0,0,0)),
+      attenuation: new vec3(0,0,0)
     }
 
-    return Vec.scaleMul(
-      color(
-        new ray(
-          rec.p,
-          Vec.sub(
-            target,
-            rec.p)
-        ),
-        world, callDepth),
-      0.5
+    const isScattering = rec.material.scatter(
+      someray,
+      rec,
+      scatterRes
     )
+
+    if (depth < 50 && isScattering) {
+      return Vec.mul(
+        scatterRes.attenuation,
+        color(scatterRes.scatteredRay, world, depth + 1)
+      );
+    } else {
+      return new vec3(0, 0, 0);
+    }
   }
 
   const unitDirection = Vec.unitVector(someray.direction);
@@ -81,8 +54,16 @@ async function main() {
   const origin =          new Vec.vec3(0, 0, 0);
 
   const world = new HitableList(
-    new Sphere(new Vec.vec3(0, 0,      -1), 0.5),
-    new Sphere(new Vec.vec3(0, -100.5, -1), 100),
+    new Sphere(
+      new Vec.vec3(0, 0,      -1), 0.5,
+      new Lambertian(new vec3(0.8, 0.3, 0.3))),
+    new Sphere(
+      new Vec.vec3(0, -100.5, -1), 100,
+      new Lambertian(new vec3(0.8, 0.8, 0.0))
+    ),
+    new Sphere(
+      new Vec.vec3(1, 0,      -1), 0.5,
+      new Metal(new vec3(0.8, 0.6, 0.2))),
   )
 
   const camera = new Camera(
@@ -112,7 +93,7 @@ async function main() {
 
         col = Vec.add(
             col, 
-            color(r, world)
+            color(r, world, 0)
           )
       }
 

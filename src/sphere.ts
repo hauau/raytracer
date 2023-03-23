@@ -1,14 +1,17 @@
 import { Hitable, HitRecord } from "./hitable";
+import { Material } from "./material";
 import { ray } from "./ray";
 import Vec, { vec3 } from "./vec";
 
 export class Sphere implements Hitable {
   center: vec3;
   radius: number;
+  material: Material;
 
-  constructor(center: vec3, radius: number) {
+  constructor(center: vec3, radius: number, material: Material) {
     this.center = center;
     this.radius = radius;
+    this.material = material;
   }
 
   hit(ray: ray, t_min: number, t_max: number, hitRecord: HitRecord) {
@@ -49,4 +52,20 @@ export class Sphere implements Hitable {
 
     return false;
   }
+}
+
+export function randomInUnitSphere(): vec3 {
+  let contactPoint: vec3;
+
+  do {
+    contactPoint = Vec.scaleMul(
+      Vec.sub(
+        new vec3(Math.random(), Math.random(), Math.random()),
+        new vec3(1,1,1)
+      ),
+      2.0
+    )
+  } while (contactPoint.squaredLength >= 1)
+
+  return contactPoint;
 }
