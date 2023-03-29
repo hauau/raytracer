@@ -49,7 +49,14 @@ export class vec3 {
     this.e1 *= k;
     this.e2 *= k;
   }
+}
 
+function getInverse(veca: vec3): vec3 {
+  return new vec3(
+    -veca.x,
+    -veca.y,
+    -veca.z
+  )
 }
 
 function unitVector(vec: vec3) {
@@ -135,6 +142,31 @@ function reflect(incomingRay: vec3, n: vec3): vec3 {
     );
 } 
 
+function refract(v: vec3, n: vec3, niOverNt: number): vec3 | undefined {
+  const uv = unitVector(v);
+  const dt = dot(uv, n);
+  const discriminant = 1 - (niOverNt**2) * (1 - dt**2);
+
+  if (discriminant > 0) {
+    return sub(
+      scaleMul(
+        sub(
+          uv,
+          scaleMul(
+            n,
+            dt
+          )
+        ),
+        niOverNt
+      ),
+      scaleMul(
+        n,
+        Math.sqrt(discriminant)
+      )
+    );
+  }
+}
+
 export default {
   vec3,
   reflect,
@@ -146,5 +178,7 @@ export default {
   scaleDiv,
   scaleMul,
   unitVector,
-  mul
+  mul,
+  getInverse,
+  refract
 }

@@ -15,8 +15,8 @@ export abstract class Material {
 /** Diffuse */
 export class Lambertian implements Material {
   albedo: vec3;
-  constructor(albdeo: vec3) {
-    this.albedo = albdeo;
+  constructor(albedo: vec3) {
+    this.albedo = albedo;
   }
 
   scatter(_: ray, rec: HitRecord, res: scatterResult): boolean {
@@ -37,9 +37,11 @@ export class Lambertian implements Material {
 
 export class Metal implements Material {
   albedo: vec3;
-  
-  constructor(albdeo: vec3) {
+  fuzziness: number;
+
+  constructor(albdeo: vec3, fuzziness: number) {
     this.albedo = albdeo;
+    this.fuzziness = fuzziness < 1 ? fuzziness : 1;
   }
 
   scatter(incomingRay: ray, rec: HitRecord, res: scatterResult): boolean {
@@ -48,9 +50,65 @@ export class Metal implements Material {
       rec.normal
     );
 
-    res.scatteredRay = new ray(rec.p, reflected);
+    res.scatteredRay = new ray(
+      rec.p,
+      Vec.add(
+        reflected,
+        Vec.scaleMul(
+          randomInUnitSphere(),
+          this.fuzziness
+        )
+      )
+    );
     res.attenuation = this.albedo;
 
     return Vec.dot(res.scatteredRay.direction, rec.normal) > 0;
   }
+}
+
+export class Dielectric implements Material {
+  refractionIndex: number;
+
+  constructor(refractionIndex: number) {
+    this.refractionIndex = refractionIndex;
+  }
+
+  scatter(incomingRay: ray, rec: HitRecord, res: scatterResult): boolean {
+    let outwardNormal: vec3;
+    let niOverNt: number;
+    let reflectProbability: number;
+    let cosine: number;
+    let reflected = Vec.reflect(incomingRay.direction, rec.normal);
+
+    res.attenuation = new vec3(1,1,1);
+
+    if (Vec.dot(incomingRay.direction, rec.normal) > 0) {
+      outwardNormal = Vec.getInverse(rec.normal);
+      niOverNt = this.refractionIndex;
+      cosine = this.refractionIndex * Vec.dot(incomingRay.direction, rec.normal) / incomingRay.direction.length;
+    } else {
+      outwardNormal = rec.normal
+      niOverNt = 1 / this.refractionIndex;
+      cosine = -Vec.dot(incomingRay.direction, rec.normal) / incomingRay.direction.length;
+    }
+
+    const refractedRay = Vec.refract(incomingRay.direction, outwardNormal, niOverNt);
+
+    reflectProbability = refractedRay 
+      ? schlick(cosine, this.refractionIndex) 
+      : 1;
+
+    if (Math.random() < reflectProbability) {
+      res.scatteredRay = new ray(rec.p, reflected);
+    } else {
+      res.scatteredRay = new ray(rec.p, refractedRay!);
+    }
+    
+    return true;
+  }
+}
+
+export function schlick(cosine: number, refractionIndex: number) {
+  const r0 = ((1 - refractionIndex) / (1 + refractionIndex)) ** 2;
+  return r0 + (1 - r0) * (1 - cosine) ** 5;
 }

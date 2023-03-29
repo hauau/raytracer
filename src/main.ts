@@ -7,7 +7,7 @@ import { Hitable, HitRecord } from './hitable';
 import { HitableList } from './hitable-list';
 import { randomInUnitSphere, Sphere } from './sphere';
 import { Camera } from './camera';
-import { Lambertian, Metal } from './material';
+import { Dielectric, Lambertian, Metal } from './material';
 
 function color(someray: ray, world: HitableList, depth: number): vec3 {
   const rec = {} as HitRecord;
@@ -48,30 +48,33 @@ async function main() {
   const ny = 100;
   const ns = 100;
 
-  const lowerLeftCorner = new Vec.vec3(-2.0, -1.0, -1.0)
-  const horizontal =      new Vec.vec3(4, 0, 0)
-  const vertical =        new Vec.vec3(0, 2, 0);
-  const origin =          new Vec.vec3(0, 0, 0);
+  const camera = new Camera(
+    90,
+    nx/ny
+  );
+  const R = Math.cos(Math.PI / 4);
 
   const world = new HitableList(
     new Sphere(
       new Vec.vec3(0, 0,      -1), 0.5,
-      new Lambertian(new vec3(0.8, 0.3, 0.3))),
+      new Lambertian(new vec3(0.1, 0.2, 0.5))),
     new Sphere(
       new Vec.vec3(0, -100.5, -1), 100,
       new Lambertian(new vec3(0.8, 0.8, 0.0))
     ),
     new Sphere(
-      new Vec.vec3(1, 0,      -1), 0.5,
-      new Metal(new vec3(0.8, 0.6, 0.2))),
+      new Vec.vec3(1, 0, -1), 0.5,
+      new Metal(new vec3(0.8, 0.6, 0.2), 0.3)
+    ),
+    new Sphere(
+      new Vec.vec3(-1, 0,      -1), 0.5,
+      new Dielectric(1.5)
+    ),
+    new Sphere(
+      new Vec.vec3(-1, 0,      -1), -0.45,
+      new Dielectric(1.5)
+    ),
   )
-
-  const camera = new Camera(
-    lowerLeftCorner,
-    horizontal,
-    vertical,
-    origin,
-  );
 
   try {
     await rm('/tmp/out.ppm')
@@ -80,6 +83,7 @@ async function main() {
 
   await writeFile('/tmp/out.ppm', `P3\n${nx} ${ny}\n255\n`)
 
+  console.time('Rendering')
   for (let j = ny - 1; j >= 0; j--) {
     for (let i = 0; i < nx; i++) {
       let col = new vec3(0, 0, 0);
@@ -89,7 +93,6 @@ async function main() {
         const v = (j + Math.random()) / ny;
 
         const r = camera.getRay(u, v);
-        const p = r.pointAtParameter(2.0);
 
         col = Vec.add(
             col, 
@@ -114,11 +117,12 @@ async function main() {
     }
   }
 
+  console.timeEnd('Rendering')
+
+
   await exec('mogrify -format png /tmp/out.ppm')
   await copyFile('/tmp/out.png', `./renders/out_${+new Date()}.png`)
-  await exec('feh --zoom 400 /tmp/out.png') 
+  await exec('viewnior /tmp/out.png') 
 }
 
-main().then(() => {
-  console.log('ok')
-}).catch(console.error);
+main().catch(console.error);
